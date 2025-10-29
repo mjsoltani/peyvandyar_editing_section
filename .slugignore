@@ -1,0 +1,53 @@
+# Files to ignore during Heroku build
+
+# Development files
+*.md
+!README.md
+!HEROKU_DEPLOYMENT.md
+
+# Test files
+**/__tests__/**
+**/*.test.*
+**/*.spec.*
+jest.config.*
+playwright.config.*
+
+# Development tools
+.eslintrc.*
+.prettierrc.*
+.gitignore
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Local environment
+.env.local
+.env.development
+.env.test
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Build artifacts (keep only necessary ones)
+coverage/
+.nyc_output/
+
+# Monitoring (not needed in production)
+monitoring/

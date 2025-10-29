@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: basalam-app
+  namespace: basalam-product-manager
+  labels:
+    app: basalam-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: basalam-app
+  template:
+    metadata:
+      labels:
+        app: basalam-app
+    spec:
+      containers:
+      - name: basalam-app
+        image: your-registry/basalam-product-manager:latest
+        ports:
+        - containerPort: 3000
+          name: frontend
+        - containerPort: 3001
+          name: backend
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: DB_HOST
+          value: "postgres-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "basalam_product_manager"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: basalam-secrets
+              key: DB_PASSWORD
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: basalam-secrets
+              key: JWT_SECRET
+        - name: JWT_REFRESH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: basalam-secrets
+              key: JWT_REFRESH_SECRET
+        - name: BASALAM_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: basalam-secrets
+              key: BASALAM_CLIENT_ID
+        - name: BASALAM_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: basalam-secrets
+              key: BASALAM_CLIENT_SECRET
+        - name: ADMIN_CARD_NUMBER
+          valueFrom:
+            secretKeyRef:
+              name: basalam-secrets
+              key: ADMIN_CARD_NUMBER
+        envFrom:
+        - configMapRef:
+            name: basalam-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: app-logs
+          mountPath: /var/log/basalam-product-manager
+      volumes:
+      - name: app-logs
+        emptyDir: {}

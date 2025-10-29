@@ -1,0 +1,59 @@
+{
+  "name": "Basalam Product Manager",
+  "description": "Advanced product management tool for Basalam vendors",
+  "repository": "https://github.com/your-username/basalam-product-manager",
+  "logo": "https://your-app-name.herokuapp.com/logo.png",
+  "keywords": ["nextjs", "basalam", "product-management", "ecommerce"],
+  "image": "heroku/nodejs",
+  "stack": "heroku-22",
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "JWT_SECRET": {
+      "description": "JWT secret key for authentication",
+      "generator": "secret"
+    },
+    "JWT_REFRESH_SECRET": {
+      "description": "JWT refresh secret key",
+      "generator": "secret"
+    },
+    "NEXTAUTH_SECRET": {
+      "description": "NextAuth secret key",
+      "generator": "secret"
+    },
+    "SESSION_SECRET": {
+      "description": "Session secret key",
+      "generator": "secret"
+    },
+    "BASALAM_CLIENT_ID": {
+      "description": "Basalam OAuth Client ID"
+    },
+    "BASALAM_CLIENT_SECRET": {
+      "description": "Basalam OAuth Client Secret"
+    },
+    "ADMIN_CARD_NUMBER": {
+      "description": "Admin card number for authentication"
+    }
+  },
+  "scripts": {
+    "postdeploy": "npm run migrate"
+  }
+}

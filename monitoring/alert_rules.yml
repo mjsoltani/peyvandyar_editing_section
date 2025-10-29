@@ -1,0 +1,56 @@
+groups:
+  - name: basalam-app-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_error_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second"
+
+      - alert: HighResponseTime
+        expr: http_request_duration_ms > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "Average response time is {{ $value }}ms"
+
+      - alert: HighMemoryUsage
+        expr: (process_memory_usage_bytes{type="heapUsed"} / process_memory_usage_bytes{type="heapTotal"}) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: DatabaseDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL database is not responding"
+
+      - alert: ApplicationDown
+        expr: up{job="basalam-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Application is down"
+          description: "Basalam Product Manager application is not responding"
+
+      - alert: HighActiveConnections
+        expr: http_active_connections > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active connections"
+          description: "{{ $value }} active connections detected"

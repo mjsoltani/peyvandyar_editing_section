@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'IRANSans', 'Vazir', 'Sahel', 'Tahoma', sans-serif;
+  --font-display: 'IRANSans', 'Vazir', sans-serif;
+  --font-body: 'Vazir', 'IRANSans', 'Sahel', sans-serif;
+  --font-mono: 'Courier New', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Vazir', 'IRANSans', 'Sahel', 'Tahoma', sans-serif;
+  direction: rtl;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Font Classes */
+.font-display {
+  font-family: 'IRANSans', 'Vazir', sans-serif;
+  font-weight: 700;
+}
+
+.font-body {
+  font-family: 'Vazir', 'IRANSans', 'Sahel', sans-serif;
+}
+
+.font-warm {
+  font-family: 'Sahel', 'Vazir', 'IRANSans', sans-serif;
+}
+
+/* Persian Typography */
+.persian-text {
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* Loading States */
+.loading-spinner {
+  @apply animate-spin h-5 w-5 border-2 border-gray-300 border-t-blue-600 rounded-full;
+}
+
+.loading-skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+/* Responsive Design Improvements */
+@media (max-width: 640px) {
+  .mobile-responsive {
+    @apply px-4 py-2 text-sm;
+  }
+  
+  .mobile-table {
+    @apply block overflow-x-auto whitespace-nowrap;
+  }
+  
+  .mobile-card {
+    @apply block p-4 border rounded-lg mb-4;
+  }
+}
+
+/* Error States */
+.error-state {
+  @apply bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded;
+}
+
+.success-state {
+  @apply bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded;
+}
+
+/* Focus States for Accessibility */
+.focus-visible:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* Tooltip Styles */
+.tooltip {
+  @apply absolute z-10 px-2 py-1 text-sm text-white bg-gray-900 rounded shadow-lg opacity-0 pointer-events-none transition-opacity duration-200;
+}
+
+.tooltip.show {
+  @apply opacity-100 pointer-events-auto;
+}
+
+/* Progress Bar */
+.progress-bar {
+  @apply w-full bg-gray-200 rounded-full h-2;
+}
+
+.progress-bar-fill {
+  @apply bg-blue-600 h-2 rounded-full transition-all duration-300;
+}
