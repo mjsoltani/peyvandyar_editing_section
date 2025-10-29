@@ -25,7 +25,7 @@ git init
 git add .
 git commit -m "Initial commit for Railway deployment"
 git branch -M main
-git remote add origin https://github.com/username/basalam-product-manager.git
+git remote add origin https://github.com/mjsoltani/peyvandyar_editing_section.git
 git push -u origin main
 ```
 

@@ -9,8 +9,8 @@ WORKDIR /app
 # کپی فایل‌های package
 COPY package*.json ./
 
-# نصب dependencies
-RUN npm ci --only=production && npm cache clean --force
+# نصب تمام dependencies (شامل devDependencies برای build)
+RUN npm ci && npm cache clean --force
 
 # کپی کد منبع
 COPY . .
