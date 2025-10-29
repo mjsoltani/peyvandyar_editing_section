@@ -50,7 +50,7 @@ router.post('/payment-request', authenticateToken, async (req, res) => {
     });
 
     // Schedule auto-approval for MVP
-    const jobId = subscriptionService.scheduleAutoApproval(paymentRequest.id);
+    const jobId = paymentRequest.id ? subscriptionService.scheduleAutoApproval(paymentRequest.id) : null;
 
     res.json({ 
       success: true, 

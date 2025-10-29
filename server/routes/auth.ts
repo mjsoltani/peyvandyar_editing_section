@@ -58,7 +58,7 @@ router.get('/callback', async (req, res) => {
       userId: user.id!,
       basalamUserId: user.basalam_user_id,
       vendorId: user.vendor_id,
-      username: user.username,
+      username: user.username || user.name || 'user',
     };
     
     const accessToken = authService.generateJWT(jwtPayload);
@@ -148,7 +148,7 @@ router.post('/refresh', async (req, res) => {
       userId: currentUser.id!,
       basalamUserId: currentUser.basalam_user_id,
       vendorId: currentUser.vendor_id,
-      username: currentUser.username,
+      username: currentUser.username || currentUser.name || 'user',
     };
     
     const newAccessToken = authService.generateJWT(newJwtPayload);

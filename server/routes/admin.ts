@@ -109,7 +109,7 @@ router.patch('/users/:id/toggle-status', async (req, res) => {
       action: `admin_toggle_user_status`,
       details: {
         target_user_id: userId,
-        new_status: updatedUser.active ? 'active' : 'inactive'
+        new_status: updatedUser?.is_active ? 'active' : 'inactive'
       },
       ip_address: req.ip
     });
