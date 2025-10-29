@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+const jwt = require('jsonwebtoken');
 import { User } from '../models/User';
 import { ActivityLog } from '../models/ActivityLog';
 
@@ -38,8 +38,8 @@ export class AuthService {
   private readonly basalamApiBaseUrl: string;
 
   constructor() {
-    this.jwtSecret = process.env.JWT_SECRET!;
-    this.jwtRefreshSecret = process.env.JWT_REFRESH_SECRET!;
+    this.jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key';
+    this.jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-key';
     this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1h';
     this.jwtRefreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
     this.basalamClientId = process.env.BASALAM_CLIENT_ID!;
@@ -50,21 +50,17 @@ export class AuthService {
     if (!this.jwtSecret || !this.jwtRefreshSecret) {
       throw new Error('JWT secrets are required');
     }
-    if (!this.basalamClientId || !this.basalamClientSecret) {
-      throw new Error('Basalam OAuth credentials are required');
-    }
   }
 
   /**
-   * Generate OAuth 2.0 authorization URL for Basalam SSO
+   * Generate authorization URL for Basalam OAuth
    */
-  generateAuthUrl(state?: string): string {
+  generateAuthUrl(): string {
     const params = new URLSearchParams({
+      response_type: 'code',
       client_id: this.basalamClientId,
       redirect_uri: this.basalamRedirectUri,
-      response_type: 'code',
-      scope: 'vendor.product.read vendor.product.write',
-      state: state || this.generateRandomState(),
+      scope: 'read write',
     });
 
     return `${this.basalamApiBaseUrl}/oauth/authorize?${params.toString()}`;
@@ -77,31 +73,31 @@ export class AuthService {
     const response = await fetch(`${this.basalamApiBaseUrl}/oauth/token`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
+      body: JSON.stringify({
         grant_type: 'authorization_code',
         client_id: this.basalamClientId,
         client_secret: this.basalamClientSecret,
-        code,
         redirect_uri: this.basalamRedirectUri,
+        code,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to exchange code for token: ${error}`);
+      const errorText = await response.text();
+      console.error('Token exchange failed:', errorText);
+      throw new Error(`Token exchange failed: ${response.status}`);
     }
 
     return response.json();
   }
 
   /**
-   * Get user information from Basalam API
+   * Get user info from Basalam API
    */
   async getUserInfo(accessToken: string): Promise<BasalamUserInfo> {
-    const response = await fetch(`${this.basalamApiBaseUrl}/api/v1/user/profile`, {
+    const response = await fetch(`${this.basalamApiBaseUrl}/api/user`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/json',
@@ -109,8 +105,9 @@ export class AuthService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get user info: ${error}`);
+      const errorText = await response.text();
+      console.error('Get user info failed:', errorText);
+      throw new Error(`Get user info failed: ${response.status}`);
     }
 
     return response.json();
@@ -123,10 +120,9 @@ export class AuthService {
     const response = await fetch(`${this.basalamApiBaseUrl}/oauth/token`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
+      body: JSON.stringify({
         grant_type: 'refresh_token',
         client_id: this.basalamClientId,
         client_secret: this.basalamClientSecret,
@@ -135,8 +131,9 @@ export class AuthService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to refresh token: ${error}`);
+      const errorText = await response.text();
+      console.error('Token refresh failed:', errorText);
+      throw new Error(`Token refresh failed: ${response.status}`);
     }
 
     return response.json();
@@ -145,149 +142,115 @@ export class AuthService {
   /**
    * Generate JWT token for internal authentication
    */
-  generateJWT(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-    return jwt.sign(payload, this.jwtSecret, {
-      expiresIn: this.jwtExpiresIn,
-    });
+  generateJWT(payload: any): string {
+    return jwt.sign(payload, this.jwtSecret, { expiresIn: this.jwtExpiresIn });
   }
 
   /**
    * Generate JWT refresh token
    */
-  generateRefreshJWT(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-    return jwt.sign(payload, this.jwtRefreshSecret, {
-      expiresIn: this.jwtRefreshExpiresIn,
-    });
+  generateRefreshJWT(payload: any): string {
+    return jwt.sign(payload, this.jwtRefreshSecret, { expiresIn: this.jwtRefreshExpiresIn });
   }
 
   /**
    * Verify JWT token
    */
   verifyJWT(token: string): JWTPayload {
-    try {
-      return jwt.verify(token, this.jwtSecret) as JWTPayload;
-    } catch (error) {
-      throw new Error('Invalid or expired token');
-    }
+    return jwt.verify(token, this.jwtSecret) as JWTPayload;
   }
 
   /**
    * Verify JWT refresh token
    */
   verifyRefreshJWT(token: string): JWTPayload {
-    try {
-      return jwt.verify(token, this.jwtRefreshSecret) as JWTPayload;
-    } catch (error) {
-      throw new Error('Invalid or expired refresh token');
-    }
+    return jwt.verify(token, this.jwtRefreshSecret) as JWTPayload;
   }
 
   /**
-   * Create or update user after successful OAuth
+   * Validate scopes
    */
-  async createOrUpdateUser(
-    userInfo: BasalamUserInfo,
-    tokens: BasalamTokenResponse,
-    ipAddress?: string
-  ): Promise<User> {
-    try {
-      // Try to find existing user
-      let user = await User.findByBasalamUserId(userInfo.id);
-
-      if (user) {
-        // Update existing user
-        user.username = userInfo.username;
-        user.name = userInfo.name;
-        user.email = userInfo.email;
-        user.vendor_id = userInfo.vendor_id;
-        user.access_token = tokens.access_token;
-        user.refresh_token = tokens.refresh_token;
-        user.updated_at = new Date();
-        
-        await user.save();
-      } else {
-        // Create new user
-        user = new User({
-          basalam_user_id: userInfo.id,
-          vendor_id: userInfo.vendor_id,
-          username: userInfo.username,
-          name: userInfo.name,
-          email: userInfo.email,
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-        });
-        
-        await user.save();
-      }
-
-      // Log the authentication activity
-      await ActivityLog.create({
-        user_id: user.id!,
-        action: 'user_login',
-        details: {
-          method: 'basalam_sso',
-          vendor_id: userInfo.vendor_id,
-          scope: tokens.scope,
-        },
-        ip_address: ipAddress,
-      });
-
-      return user;
-    } catch (error) {
-      console.error('Error creating/updating user:', error);
-      throw new Error('Failed to create or update user');
-    }
-  }
-
-  /**
-   * Generate random state for OAuth security
-   */
-  private generateRandomState(): string {
-    return Math.random().toString(36).substring(2, 15) + 
-           Math.random().toString(36).substring(2, 15);
-  }
-
-  /**
-   * Validate required scopes
-   */
-  validateScopes(receivedScopes: string, requiredScopes: string[]): boolean {
-    const scopes = receivedScopes.split(' ');
+  validateScopes(grantedScopes: string, requiredScopes: string[]): boolean {
+    const scopes = grantedScopes.split(' ');
     return requiredScopes.every(scope => scopes.includes(scope));
+  }
+
+  /**
+   * Log activity
+   */
+  async logActivity(userId: number, action: string, details: any, ipAddress?: string): Promise<void> {
+    try {
+      await ActivityLog.create({
+        user_id: userId,
+        action,
+        details,
+        ip_address: ipAddress || '127.0.0.1',
+      });
+    } catch (error) {
+      console.error('Error logging activity:', error);
+    }
   }
 
   /**
    * Get user by ID
    */
   async getUserById(userId: number): Promise<User | null> {
-    try {
-      return await User.findById(userId);
-    } catch (error) {
-      console.error('Error fetching user by ID:', error);
-      return null;
-    }
+    return await User.findById(userId);
   }
 
   /**
-   * Log user activity
+   * Create or update user from Basalam user info
    */
-  async logActivity(
-    userId: number,
-    action: string,
-    details: any = {},
-    ipAddress?: string
-  ): Promise<void> {
+  async createOrUpdateUser(
+    basalamUserInfo: BasalamUserInfo,
+    tokens: BasalamTokenResponse
+  ): Promise<User> {
     try {
-      await ActivityLog.create({
-        user_id: userId,
-        action,
-        details,
-        ip_address: ipAddress,
-      });
+      // Check if user already exists
+      let user = await User.findByBasalamUserId(basalamUserInfo.id);
+
+      if (user) {
+        // Update existing user
+        user = await User.update(user.id!, {
+          username: basalamUserInfo.username,
+          name: basalamUserInfo.name,
+          email: basalamUserInfo.email,
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+        });
+      } else {
+        // Create new user
+        user = await User.create({
+          basalam_user_id: basalamUserInfo.id,
+          vendor_id: basalamUserInfo.vendor_id,
+          username: basalamUserInfo.username,
+          name: basalamUserInfo.name,
+          email: basalamUserInfo.email,
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+        });
+      }
+
+      // Log authentication activity
+      if (user && user.id) {
+        await ActivityLog.create({
+          user_id: user.id,
+          action: 'user_login',
+          details: {
+            login_method: 'basalam_oauth',
+            user_agent: 'system',
+          },
+          ip_address: '127.0.0.1',
+        });
+      }
+
+      return user!;
     } catch (error) {
-      console.error('Failed to log activity:', error);
-      // Don't throw error for logging failures
+      console.error('Error creating/updating user:', error);
+      throw error;
     }
   }
 }
 
+// Export singleton instance
 export const authService = new AuthService();

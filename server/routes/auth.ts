@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/login', (req, res) => {
   try {
     const state = req.query.state as string;
-    const authUrl = authService.generateAuthUrl(state);
+    const authUrl = authService.generateAuthUrl();
     
     // Redirect to Basalam OAuth
     res.redirect(authUrl);
@@ -51,7 +51,7 @@ router.get('/callback', async (req, res) => {
     const userInfo = await authService.getUserInfo(tokens.access_token);
     
     // Create or update user
-    const user = await authService.createOrUpdateUser(userInfo, tokens, req.ip);
+    const user = await authService.createOrUpdateUser(userInfo, tokens);
     
     // Generate internal JWT tokens
     const jwtPayload = {

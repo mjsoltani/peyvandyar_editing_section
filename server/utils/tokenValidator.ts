@@ -119,9 +119,10 @@ export class TokenValidator {
       const newTokens = await authService.refreshAccessToken(user.refresh_token);
       
       // Update user tokens
-      user.access_token = newTokens.access_token;
-      user.refresh_token = newTokens.refresh_token;
-      await user.save();
+      await User.update(user.id!, {
+        access_token: newTokens.access_token,
+        refresh_token: newTokens.refresh_token,
+      });
 
       // Log the token refresh
       await authService.logActivity(

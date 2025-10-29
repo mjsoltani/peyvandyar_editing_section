@@ -172,7 +172,7 @@ export class TemplateService {
         const query = 'DELETE FROM templates WHERE id = $1 AND user_id = $2';
         const result = await this.db.query(query, [templateId, userId]);
 
-        return result.rowCount > 0;
+        return (result.rowCount || 0) > 0;
     }
 
     /**
