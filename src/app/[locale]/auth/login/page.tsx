@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -8,13 +8,35 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Check for error in URL params
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    
+    if (errorParam) {
+      const errorMessages: { [key: string]: string } = {
+        oauth_error: 'خطا در احراز هویت باسلام',
+        no_code: 'کد احراز هویت دریافت نشد',
+        config_error: 'خطا در تنظیمات سیستم',
+        token_exchange_failed: 'خطا در دریافت توکن دسترسی',
+        user_info_failed: 'خطا در دریافت اطلاعات کاربر',
+        callback_error: 'خطا در فرآیند احراز هویت'
+      };
+      
+      setError(errorMessages[errorParam] || 'خطای نامشخص در احراز هویت');
+    }
+  }, []);
+
   const handleBasalamLogin = async () => {
     setLoading(true);
     setError('');
     
     try {
       // Redirect to Basalam OAuth
-      window.location.href = 'http://localhost:3001/api/auth/basalam';
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://basalam-product-manager.onrender.com'
+        : 'http://localhost:3000';
+      window.location.href = `${baseUrl}/api/auth/basalam`;
     } catch (err) {
       setError('خطا در اتصال به باسلام');
       setLoading(false);
