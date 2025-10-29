@@ -40,7 +40,8 @@
     "precommit": "npm run lint && npm run test:coverage",
     "deploy:vercel": "vercel --prod",
     "deploy:vercel:preview": "vercel",
-    "heroku-postbuild": "npm run build"
+    "heroku-postbuild": "npm run build",
+    "render-postbuild": "npm run build"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4",
