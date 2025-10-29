@@ -1,56 +1,29 @@
-# Multi-stage build for production optimization
-FROM node:18-alpine AS base
+# استفاده از Node.js 20 Alpine
+FROM node:20-alpine AS base
 
-# Install dependencies only when needed
-FROM base AS deps
+# نصب dependencies مورد نیاز برای Alpine
 RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+# کپی فایل‌های package
+COPY package*.json ./
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# نصب dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# کپی کد منبع
 COPY . .
 
-# Build the application
+# Build اپلیکیشن
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
-
+# تنظیم متغیر محیطی
 ENV NODE_ENV=production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy built application
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy server files
-COPY --from=builder /app/server ./server
-COPY --from=builder /app/node_modules ./node_modules
-
-# Create log directory
-RUN mkdir -p /var/log/basalam-product-manager && chown nextjs:nodejs /var/log/basalam-product-manager
-
-USER nextjs
-
-EXPOSE 3000
-EXPOSE 3001
-
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
+# باز کردن پورت
+EXPOSE 3000
 
-# Start both frontend and backend
-CMD ["sh", "-c", "node server.js & node server/index.js"]
+# اجرای اپلیکیشن
+CMD ["npm", "start"]
