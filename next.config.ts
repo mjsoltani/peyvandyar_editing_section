@@ -5,10 +5,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
 
 const nextConfig: NextConfig = {
   // Production optimizations (only in production)
-  ...(process.env.NODE_ENV === 'production' && {
-    output: 'standalone',
-    compress: true,
-  }),
+  // Remove standalone output for Render
+  compress: true,
   poweredByHeader: false,
   
   // Security headers
