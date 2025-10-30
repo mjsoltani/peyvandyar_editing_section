@@ -44,12 +44,15 @@ export default function LoginPage() {
   };
 
   const handleDemoLogin = () => {
-    // For demo purposes - simulate login
+    // For demo purposes - simulate login with fake token
     localStorage.setItem('user', JSON.stringify({
       id: 1,
       name: 'کاربر نمونه',
       email: 'demo@basalam.com',
-      basalam_user_id: 'demo123'
+      basalam_user_id: 'demo123',
+      vendor: 'فروشگاه نمونه',
+      vendor_id: '1',
+      access_token: 'demo_token_for_testing_only'
     }));
     
     router.push('/fa/dashboard');

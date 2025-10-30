@@ -14,37 +14,22 @@ interface Product {
   selected?: boolean;
 }
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  basalam_user_id: string;
+  vendor?: string;
+  vendor_id?: string;
+  access_token?: string;
+}
+
 export default function ProductsPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: 1,
-      title: 'محصول نمونه 1',
-      price: 100000,
-      discount_price: 80000,
-      stock: 10,
-      status: 'active',
-      category: 'دسته 1'
-    },
-    {
-      id: 2,
-      title: 'محصول نمونه 2',
-      price: 200000,
-      stock: 5,
-      status: 'active',
-      category: 'دسته 2'
-    },
-    {
-      id: 3,
-      title: 'محصول نمونه 3',
-      price: 150000,
-      stock: 8,
-      status: 'inactive',
-      category: 'دسته 1'
-    }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [showBatchEdit, setShowBatchEdit] = useState(false);
@@ -68,13 +53,55 @@ export default function ProductsPage() {
     // Check if user is logged in
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      loadProducts(parsedUser);
     } else {
       router.push('/fa/auth/login');
       return;
     }
     setLoading(false);
   }, [router]);
+
+  const loadProducts = async (currentUser: User) => {
+    if (!currentUser?.access_token || !currentUser?.vendor_id) {
+      console.log('Missing access_token or vendor_id for products');
+      return;
+    }
+    
+    setLoadingProducts(true);
+    try {
+      const response = await fetch(`/api/basalam/products?vendor_id=${currentUser.vendor_id}&token=${currentUser.access_token}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Products loaded:', data);
+        
+        if (data.success && data.data) {
+          const productsArray = Array.isArray(data.data) ? data.data : data.data.data || [];
+          
+          // Transform Basalam products to our format
+          const transformedProducts = productsArray.map((p: any) => ({
+            id: p.id || p.product_id,
+            title: p.title || p.name,
+            price: p.price || p.base_price || 0,
+            discount_price: p.discount_price || p.sale_price,
+            stock: p.stock || p.inventory || 0,
+            status: p.status || (p.is_active ? 'active' : 'inactive'),
+            category: p.category?.title || p.category_name || 'نامشخص'
+          }));
+          
+          setProducts(transformedProducts);
+        }
+      } else {
+        console.error('Failed to load products:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('user');
