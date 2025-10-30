@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
         if (!clientId || !redirectUri) {
             return NextResponse.json(
-                { 
+                {
                     error: 'Basalam OAuth configuration is missing',
                     debug: {
                         clientId: clientId ? 'SET' : 'MISSING',
@@ -28,12 +28,11 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Build OAuth authorization URL
-        const authUrl = new URL(`${basalamApiUrl}/oauth/authorize`);
-        authUrl.searchParams.set('response_type', 'code');
+        // Build OAuth authorization URL (طبق مستندات باسلام)
+        const authUrl = new URL('https://basalam.com/accounts/sso');
         authUrl.searchParams.set('client_id', clientId);
         authUrl.searchParams.set('redirect_uri', redirectUri);
-        authUrl.searchParams.set('scope', 'read write');
+        authUrl.searchParams.set('scope', 'vendor.product.read vendor.product.write customer.order.read');
 
         // Add state parameter for security (optional)
         const state = Math.random().toString(36).substring(2, 15);

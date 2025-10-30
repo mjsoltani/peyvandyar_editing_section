@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Exchange code for access token
-    const tokenResponse = await fetch(`${basalamApiUrl}/oauth/token`, {
+    // Exchange code for access token (طبق مستندات باسلام)
+    const tokenResponse = await fetch('https://auth.basalam.com/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,8 +62,8 @@ export async function GET(request: NextRequest) {
 
     const tokens = await tokenResponse.json();
 
-    // Get user info from Basalam
-    const userResponse = await fetch(`${basalamApiUrl}/api/user`, {
+    // Get user info from Basalam (طبق مستندات باسلام)
+    const userResponse = await fetch('https://openapi.basalam.com/v1/users/me', {
       headers: {
         'Authorization': `Bearer ${tokens.access_token}`,
         'Accept': 'application/json',
@@ -80,6 +80,14 @@ export async function GET(request: NextRequest) {
 
     const userInfo = await userResponse.json();
 
+    // Log user info for debugging
+    console.log('User info received:', {
+      id: userInfo.id,
+      username: userInfo.username,
+      name: userInfo.name,
+      vendor: userInfo.vendor
+    });
+
     // Here you would typically:
     // 1. Save user info to your database
     // 2. Create a session
@@ -89,6 +97,7 @@ export async function GET(request: NextRequest) {
     const dashboardUrl = new URL('/fa/dashboard', request.url);
     dashboardUrl.searchParams.set('login', 'success');
     dashboardUrl.searchParams.set('user', userInfo.name || userInfo.username);
+    dashboardUrl.searchParams.set('vendor', userInfo.vendor?.title || 'نامشخص');
     
     return NextResponse.redirect(dashboardUrl.toString());
 
