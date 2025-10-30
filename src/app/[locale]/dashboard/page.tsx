@@ -10,12 +10,22 @@ interface User {
   email: string;
   basalam_user_id: string;
   vendor?: string;
+  vendor_id?: string;
+  access_token?: string;
+}
+
+interface ProductStats {
+  total: number;
+  active: number;
+  inactive: number;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [productStats, setProductStats] = useState<ProductStats>({ total: 0, active: 0, inactive: 0 });
+  const [loadingStats, setLoadingStats] = useState(false);
 
   useEffect(() => {
     // Check URL params first (from OAuth callback)
@@ -25,20 +35,32 @@ export default function DashboardPage() {
     const vendorName = urlParams.get('vendor');
 
     if (loginSuccess === 'success' && userName) {
+      const vendorId = urlParams.get('vendor_id');
+      const userId = urlParams.get('user_id');
+      const accessToken = urlParams.get('access_token');
+      
       // Create user object from URL params
       const userFromUrl = {
-        id: Date.now(), // temporary ID
+        id: parseInt(userId || '0') || Date.now(),
         name: decodeURIComponent(userName),
-        email: 'user@basalam.com', // placeholder
-        basalam_user_id: 'temp_id',
-        vendor: vendorName ? decodeURIComponent(vendorName) : 'نامشخص'
+        email: `${userName.toLowerCase().replace(/\s+/g, '.')}@basalam.com`,
+        basalam_user_id: userId || 'temp_id',
+        vendor: vendorName ? decodeURIComponent(vendorName) : 'نامشخص',
+        vendor_id: vendorId || '0',
+        access_token: accessToken || ''
       };
+      
+      console.log('User created from URL:', { 
+        hasToken: !!accessToken, 
+        tokenLength: accessToken?.length,
+        vendorId 
+      });
       
       // Save to localStorage for future visits
       localStorage.setItem('user', JSON.stringify(userFromUrl));
       setUser(userFromUrl);
       
-      // Clean URL
+      // Clean URL (remove sensitive token from URL)
       window.history.replaceState({}, '', '/fa/dashboard');
     } else {
       // Check localStorage for existing user
@@ -52,6 +74,59 @@ export default function DashboardPage() {
     }
     setLoading(false);
   }, [router]);
+
+  // Load product stats after user is set
+  useEffect(() => {
+    if (user && user.vendor_id && user.vendor_id !== '0') {
+      loadProductStats();
+    }
+  }, [user]);
+
+  const loadProductStats = async () => {
+    if (!user?.access_token || !user?.vendor_id) {
+      console.log('Missing access_token or vendor_id:', { 
+        hasToken: !!user?.access_token, 
+        vendorId: user?.vendor_id 
+      });
+      return;
+    }
+    
+    setLoadingStats(true);
+    try {
+      console.log('Loading products for vendor:', user.vendor_id);
+      
+      // Try to get products from Basalam API
+      const response = await fetch(`/api/basalam/products?vendor_id=${user.vendor_id}&token=${user.access_token}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Products API response:', data);
+        
+        if (data.success && data.data) {
+          const products = Array.isArray(data.data) ? data.data : data.data.data || [];
+          const total = products.length;
+          const active = products.filter((p: any) => p.status === 'active' || p.is_active).length;
+          
+          setProductStats({
+            total,
+            active,
+            inactive: total - active
+          });
+          
+          console.log('Product stats updated:', { total, active, inactive: total - active });
+        } else {
+          console.log('No products data in response:', data);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Products API error:', errorData);
+      }
+    } catch (error) {
+      console.error('Error loading product stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -104,9 +179,12 @@ export default function DashboardPage() {
           <p className="text-gray-600 mb-4">
             از این داشبورد می‌توانید تمام محصولات خود را مدیریت کنید، ویرایش دسته‌جمعی انجام دهید و از الگوهای آماده استفاده کنید.
           </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-blue-800 text-sm">
-              💡 شما با حساب کاربری <strong>{user.email}</strong> وارد شده‌اید.
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-green-800 text-sm">
+              ✅ شما با حساب <strong>{user.name}</strong> وارد شده‌اید.
+              {user.vendor && user.vendor !== 'نامشخص' && (
+                <span className="block mt-1">🏪 غرفه: <strong>{user.vendor}</strong></span>
+              )}
             </p>
           </div>
         </div>
