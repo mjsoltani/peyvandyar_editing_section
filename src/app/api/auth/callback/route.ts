@@ -140,13 +140,21 @@ export async function GET(request: NextRequest) {
     // 2. Create a session
     // 3. Set authentication cookies
     
-    // For now, redirect to dashboard with success
+    // Store token and user info in a more secure way
+    // For now, we'll pass the token in URL (not recommended for production)
     const dashboardUrl = new URL(`${baseUrl}/fa/dashboard`);
     dashboardUrl.searchParams.set('login', 'success');
     dashboardUrl.searchParams.set('user', userInfo.name || userInfo.username || 'کاربر');
     dashboardUrl.searchParams.set('vendor', userInfo.vendor?.title || userInfo.vendor?.identifier || 'نامشخص');
     dashboardUrl.searchParams.set('vendor_id', userInfo.vendor?.id?.toString() || '0');
     dashboardUrl.searchParams.set('user_id', userInfo.id?.toString() || userInfo.hash_id || '0');
+    dashboardUrl.searchParams.set('access_token', tokens.access_token);
+    
+    console.log('Redirecting to dashboard with token:', {
+      hasToken: !!tokens.access_token,
+      tokenLength: tokens.access_token?.length,
+      vendorId: userInfo.vendor?.id?.toString() || '0'
+    });
     
     return NextResponse.redirect(dashboardUrl.toString());
 
