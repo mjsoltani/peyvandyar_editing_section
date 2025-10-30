@@ -128,9 +128,11 @@ export async function GET(request: NextRequest) {
     // Log user info for debugging
     console.log('User info received:', {
       id: userInfo.id,
+      hash_id: userInfo.hash_id,
       username: userInfo.username,
       name: userInfo.name,
-      vendor: userInfo.vendor
+      vendor: userInfo.vendor,
+      full_response: userInfo
     });
 
     // Here you would typically:
@@ -141,8 +143,10 @@ export async function GET(request: NextRequest) {
     // For now, redirect to dashboard with success
     const dashboardUrl = new URL(`${baseUrl}/fa/dashboard`);
     dashboardUrl.searchParams.set('login', 'success');
-    dashboardUrl.searchParams.set('user', userInfo.name || userInfo.username);
-    dashboardUrl.searchParams.set('vendor', userInfo.vendor?.title || 'نامشخص');
+    dashboardUrl.searchParams.set('user', userInfo.name || userInfo.username || 'کاربر');
+    dashboardUrl.searchParams.set('vendor', userInfo.vendor?.title || userInfo.vendor?.identifier || 'نامشخص');
+    dashboardUrl.searchParams.set('vendor_id', userInfo.vendor?.id?.toString() || '0');
+    dashboardUrl.searchParams.set('user_id', userInfo.id?.toString() || userInfo.hash_id || '0');
     
     return NextResponse.redirect(dashboardUrl.toString());
 

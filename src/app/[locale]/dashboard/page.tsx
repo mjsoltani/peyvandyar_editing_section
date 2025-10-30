@@ -9,6 +9,7 @@ interface User {
   name: string;
   email: string;
   basalam_user_id: string;
+  vendor?: string;
 }
 
 export default function DashboardPage() {
@@ -17,13 +18,37 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    // Check URL params first (from OAuth callback)
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginSuccess = urlParams.get('login');
+    const userName = urlParams.get('user');
+    const vendorName = urlParams.get('vendor');
+
+    if (loginSuccess === 'success' && userName) {
+      // Create user object from URL params
+      const userFromUrl = {
+        id: Date.now(), // temporary ID
+        name: decodeURIComponent(userName),
+        email: 'user@basalam.com', // placeholder
+        basalam_user_id: 'temp_id',
+        vendor: vendorName ? decodeURIComponent(vendorName) : 'نامشخص'
+      };
+      
+      // Save to localStorage for future visits
+      localStorage.setItem('user', JSON.stringify(userFromUrl));
+      setUser(userFromUrl);
+      
+      // Clean URL
+      window.history.replaceState({}, '', '/fa/dashboard');
     } else {
-      router.push('/fa/auth/login');
-      return;
+      // Check localStorage for existing user
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        setUser(JSON.parse(userData));
+      } else {
+        router.push('/fa/auth/login');
+        return;
+      }
     }
     setLoading(false);
   }, [router]);
@@ -57,6 +82,9 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">داشبورد مدیریت محصولات</h1>
               <p className="text-gray-600">خوش آمدید، {user.name}</p>
+              {user.vendor && user.vendor !== 'نامشخص' && (
+                <p className="text-sm text-blue-600">غرفه: {user.vendor}</p>
+              )}
             </div>
             <button
               onClick={handleLogout}
