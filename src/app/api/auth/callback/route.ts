@@ -66,26 +66,64 @@ export async function GET(request: NextRequest) {
     }
 
     const tokens = await tokenResponse.json();
-
-    // Get user info from Basalam (طبق مستندات باسلام)
-    const userResponse = await fetch('https://openapi.basalam.com/v1/users/me', {
-      headers: {
-        'Authorization': `Bearer ${tokens.access_token}`,
-        'Accept': 'application/json',
-      },
+    
+    // Log token info for debugging
+    console.log('Tokens received:', {
+      token_type: tokens.token_type,
+      expires_in: tokens.expires_in,
+      access_token_length: tokens.access_token?.length,
+      access_token_start: tokens.access_token?.substring(0, 20) + '...'
     });
 
-    if (!userResponse.ok) {
-      const errorText = await userResponse.text();
-      console.error('Get user info failed:', errorText);
-      console.error('User response status:', userResponse.status);
-      console.error('User response headers:', Object.fromEntries(userResponse.headers.entries()));
+    // Try different user info endpoints
+    const userEndpoints = [
+      'https://openapi.basalam.com/v1/users/me',
+      'https://auth.basalam.com/whoami'
+    ];
+
+    let userInfo = null;
+    let lastError = null;
+
+    for (const endpoint of userEndpoints) {
+      try {
+        console.log(`Trying user info endpoint: ${endpoint}`);
+        
+        const userResponse = await fetch(endpoint, {
+          headers: {
+            'Authorization': `Bearer ${tokens.access_token}`,
+            'Accept': 'application/json',
+          },
+        });
+
+        console.log(`Response from ${endpoint}:`, {
+          status: userResponse.status,
+          statusText: userResponse.statusText,
+          headers: Object.fromEntries(userResponse.headers.entries())
+        });
+
+        if (userResponse.ok) {
+          userInfo = await userResponse.json();
+          console.log(`Success with ${endpoint}:`, userInfo);
+          break;
+        } else {
+          const errorText = await userResponse.text();
+          console.error(`Failed ${endpoint}:`, errorText);
+          lastError = errorText;
+        }
+      } catch (error) {
+        console.error(`Error with ${endpoint}:`, error);
+        lastError = error;
+      }
+    }
+
+    if (!userInfo) {
+      console.error('All user info endpoints failed. Last error:', lastError);
       return NextResponse.redirect(
         `${baseUrl}/fa/auth/login?error=user_info_failed`
       );
     }
 
-    const userInfo = await userResponse.json();
+
 
     // Log user info for debugging
     console.log('User info received:', {
