@@ -7,11 +7,16 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get('error');
     const state = searchParams.get('state');
 
+    // Get correct base URL
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://basalam-product-manager.onrender.com'
+      : 'http://localhost:3000';
+
     // Handle OAuth error
     if (error) {
       console.error('OAuth error:', error);
       return NextResponse.redirect(
-        new URL('/fa/auth/login?error=oauth_error', request.url)
+        `${baseUrl}/fa/auth/login?error=oauth_error`
       );
     }
 
@@ -19,7 +24,7 @@ export async function GET(request: NextRequest) {
     if (!code) {
       console.error('No authorization code received');
       return NextResponse.redirect(
-        new URL('/fa/auth/login?error=no_code', request.url)
+        `${baseUrl}/fa/auth/login?error=no_code`
       );
     }
 
@@ -32,7 +37,7 @@ export async function GET(request: NextRequest) {
     if (!clientId || !clientSecret || !redirectUri) {
       console.error('Missing OAuth configuration');
       return NextResponse.redirect(
-        new URL('/fa/auth/login?error=config_error', request.url)
+        `${baseUrl}/fa/auth/login?error=config_error`
       );
     }
 
@@ -56,7 +61,7 @@ export async function GET(request: NextRequest) {
       const errorText = await tokenResponse.text();
       console.error('Token exchange failed:', errorText);
       return NextResponse.redirect(
-        new URL('/fa/auth/login?error=token_exchange_failed', request.url)
+        `${baseUrl}/fa/auth/login?error=token_exchange_failed`
       );
     }
 
@@ -73,8 +78,10 @@ export async function GET(request: NextRequest) {
     if (!userResponse.ok) {
       const errorText = await userResponse.text();
       console.error('Get user info failed:', errorText);
+      console.error('User response status:', userResponse.status);
+      console.error('User response headers:', Object.fromEntries(userResponse.headers.entries()));
       return NextResponse.redirect(
-        new URL('/fa/auth/login?error=user_info_failed', request.url)
+        `${baseUrl}/fa/auth/login?error=user_info_failed`
       );
     }
 
@@ -94,7 +101,7 @@ export async function GET(request: NextRequest) {
     // 3. Set authentication cookies
     
     // For now, redirect to dashboard with success
-    const dashboardUrl = new URL('/fa/dashboard', request.url);
+    const dashboardUrl = new URL(`${baseUrl}/fa/dashboard`);
     dashboardUrl.searchParams.set('login', 'success');
     dashboardUrl.searchParams.set('user', userInfo.name || userInfo.username);
     dashboardUrl.searchParams.set('vendor', userInfo.vendor?.title || 'نامشخص');
@@ -103,8 +110,11 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('OAuth callback error:', error);
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://basalam-product-manager.onrender.com'
+      : 'http://localhost:3000';
     return NextResponse.redirect(
-      new URL('/fa/auth/login?error=callback_error', request.url)
+      `${baseUrl}/fa/auth/login?error=callback_error`
     );
   }
 }
